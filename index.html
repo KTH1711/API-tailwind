@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRUD con Excel y Fondo SVG</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<style>
+    body{
+        background-color: #CB69FF;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 1600 800'%3E%3Cg %3E%3Cpolygon fill='%23ce83f5' points='800 100 0 200 0 800 1600 800 1600 200'/%3E%3Cpolygon fill='%23d19bee' points='800 200 0 400 0 800 1600 800 1600 400'/%3E%3Cpolygon fill='%23d6b0ea' points='800 300 0 600 0 800 1600 800 1600 600'/%3E%3Cpolygon fill='%23dbc3e7' points='1600 800 800 400 0 800'/%3E%3Cpolygon fill='%23e0d4e7' points='1280 800 800 500 320 800'/%3E%3Cpolygon fill='%23e7e2e9' points='533.3 800 1066.7 800 800 600'/%3E%3Cpolygon fill='%23EEE' points='684.1 800 914.3 800 800 700'/%3E%3C/g%3E%3C/svg%3E");
+        background-attachment: fixed;
+        background-size: cover;
+        cursor: url("data:image/svg+xml,..."), auto;
+    }
+    .custom-cursor {
+        cursor: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='48'%20height='48'%20viewBox='0%200%2024%2024'%3E%3Cg%20fill='%23C33CFF'%3E%3Cpath%20d='M18%207c-3%200-5.5-1.5-9%202s-2%206-2%209c0%205%204.1%205.63%206%205%203-1%201-3%204-6s5-1%206-4c.63-1.9%200-6-5-6Z'%3E%3C/path%3E%3Ccircle%20cx='8.2'%20cy='4'%20r='2'%3E%3C/circle%3E%3Ccircle%20cx='4'%20cy='8.2'%20r='2'%3E%3C/circle%3E%3Ccircle%20cx='14'%20cy='3'%20r='2'%3E%3C/circle%3E%3Ccircle%20cx='3'%20cy='14'%20r='2'%3E%3C/circle%3E%3C/g%3E%3C/svg%3E"), auto !important;
+    }
+    h1{
+        color: #CB69FF;
+    }
+</style>
+
+    <body class="bg-[#071B2D] flex items-center justify-center min-h-screen custom-cursor">
+  <div class="bg-white bg-opacity-80 p-8 rounded-lg shadow-lg max-w-2xl w-full">
+    <h1 class="text-2xl font-bold text-center mb-6">Gestión de Datos (Excel)</h1>
+
+    <!-- Subida de archivo -->
+    <div class="mb-4">
+      <label for="cargarExel">Cargar archivo Excel: (datos_YYYY_MM)_DD.xlsx</label>
+      <input type="file" id="cargarExel" name="file" accept=".xlsx,.xls" ">
+    </div>
+
+    <!-- Campo Nombre -->
+    <input type="text" placeholder="Nombre" class="block w-full mb-3 px-4 py-2 rounded bg-white shadow-sm text-sm focus:outline-none focus:ring focus:ring-purple-300">
+
+    <!-- Campo Edad -->
+    <input type="text" placeholder="Edad" class="block w-full mb-4 px-4 py-2 rounded bg-white shadow-sm text-sm focus:outline-none focus:ring focus:ring-purple-300">
+
+    <!-- Botón Guardar -->
+    <button class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm font-semibold">Guardar</button>
+
+    <!-- Tabla -->
+    <table class="w-full mt-6 text-sm text-left">
+      <thead>
+        <tr class="text-black font-semibold">
+          <th class="py-2 px-4">ID</th>
+          <th class="py-2 px-4">Nombre</th>
+          <th class="py-2 px-4">Edad</th>
+          <th class="py-2 px-4">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Aquí van las filas de datos dinámicos -->
+      </tbody>
+    </table>
+  </div>
+  <script>
+  const btnGuardar = document.querySelector('button');
+  const nombreInput = document.querySelector('input[placeholder="Nombre"]');
+  const edadInput = document.querySelector('input[placeholder="Edad"]');
+  const tablaBody = document.querySelector('table tbody');
+
+  let contadorID = 1;
+
+  btnGuardar.addEventListener('click', () => {
+    const nombre = nombreInput.value.trim();
+    const edad = edadInput.value.trim();
+
+    if (nombre === '' || edad === '') {
+      alert("Por favor, completa ambos campos.");
+      return;
+    }
+
+    const fila = document.createElement('tr');
+
+    fila.innerHTML = `
+      <td class="py-2 px-4">${contadorID++}</td>
+      <td class="py-2 px-4">${nombre}</td>
+      <td class="py-2 px-4">${edad}</td>
+      <td class="py-2 px-4">
+        <button class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs eliminar">Eliminar</button>
+      </td>
+    `;
+
+    tablaBody.appendChild(fila);
+
+    // Limpiar inputs
+    nombreInput.value = '';
+    edadInput.value = '';
+  });
+
+  // Delegación de eventos para eliminar filas
+  tablaBody.addEventListener('click', (e) => {
+    if (e.target.classList.contains('eliminar')) {
+      e.target.closest('tr').remove();
+    }
+  });
+</script>
+
+</body>
+</html>
