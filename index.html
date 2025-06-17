@@ -56,6 +56,12 @@
         <!-- Aquí van las filas de datos dinámicos -->
       </tbody>
     </table>
+    <!-- Botón Exportar -->
+        <button id="exportarExcel" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded text-sm font-semibold ml-2">
+        Exportar a Excel
+        </button>
+
+    
   </div>
   <script>
   const btnGuardar = document.querySelector('button');
@@ -98,6 +104,83 @@
       e.target.closest('tr').remove();
     }
   });
+  const inputExcel = document.getElementById('cargarExel');
+
+inputExcel.addEventListener('change', (e) => {
+  const archivo = e.target.files[0];
+  if (!archivo) return;
+
+  const lector = new FileReader();
+
+  lector.onload = (evento) => {
+    const datos = new Uint8Array(evento.target.result);
+    const libro = XLSX.read(datos, { type: 'array' });
+
+    const primeraHoja = libro.SheetNames[0];
+    const hoja = libro.Sheets[primeraHoja];
+
+    // Convertir hoja a JSON
+    const filas = XLSX.utils.sheet_to_json(hoja, { header: 1 });
+
+    // Limpiar tabla actual
+    tablaBody.innerHTML = '';
+    contadorID = 1;
+
+    filas.forEach((fila, index) => {
+      // Saltar encabezado
+      if (index === 0 || fila.length < 2) return;
+
+      const [id, nombre, edad] = fila;
+
+      const nuevaFila = document.createElement('tr');
+      nuevaFila.innerHTML = `
+        <td class="py-2 px-4">${id || contadorID++}</td>
+        <td class="py-2 px-4">${nombre}</td>
+        <td class="py-2 px-4">${edad}</td>
+        <td class="py-2 px-4">
+          <button class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs eliminar">Eliminar</button>
+        </td>
+      `;
+      tablaBody.appendChild(nuevaFila);
+    });
+  };
+
+  lector.readAsArrayBuffer(archivo);
+});
+
+  // Botón exportar
+const btnExportar = document.getElementById('exportarExcel');
+
+btnExportar.addEventListener('click', () => {
+  const datos = [];
+  
+  // Recorremos las filas de la tabla
+  tablaBody.querySelectorAll('tr').forEach(fila => {
+    const celdas = fila.querySelectorAll('td');
+    const filaDatos = {
+      ID: celdas[0].textContent,
+      Nombre: celdas[1].textContent,
+      Edad: celdas[2].textContent
+    };
+    datos.push(filaDatos);
+  });
+
+  if (datos.length === 0) {
+    alert("No hay datos para exportar.");
+    return;
+  }
+
+  // Crear una hoja de cálculo
+  const ws = XLSX.utils.json_to_sheet(datos);
+
+  // Crear un libro
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Datos");
+
+  // Exportar
+  XLSX.writeFile(wb, "datos_exportados.xlsx");
+});
+
 </script>
 
 </body>
