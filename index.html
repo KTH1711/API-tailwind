@@ -64,48 +64,94 @@
     
   </div>
   <script>
-  const btnGuardar = document.querySelector('button');
-  const nombreInput = document.querySelector('input[placeholder="Nombre"]');
-  const edadInput = document.querySelector('input[placeholder="Edad"]');
-  const tablaBody = document.querySelector('table tbody');
+const btnGuardar = document.querySelector('button');
+const nombreInput = document.querySelector('input[placeholder="Nombre"]');
+const edadInput = document.querySelector('input[placeholder="Edad"]');
+const tablaBody = document.querySelector('table tbody');
+const inputExcel = document.getElementById('cargarExel');
+const btnExportar = document.getElementById('exportarExcel');
 
-  let contadorID = 1;
+let contadorID = 1;
+let filaEditando = null;
+let datosExcel = [];
 
-  btnGuardar.addEventListener('click', () => {
-    const nombre = nombreInput.value.trim();
-    const edad = edadInput.value.trim();
+// Crear fila visual y lógica
+function crearFila(id, nombre, edad) {
+  const fila = document.createElement('tr');
+  fila.innerHTML = `
+    <td class="py-2 px-4">${id}</td>
+    <td class="py-2 px-4">${nombre}</td>
+    <td class="py-2 px-4">${edad}</td>
+    <td class="py-2 px-4 space-x-1">
+      <button class="editar bg-yellow-400 hover:bg-yellow-500 text-white px-2 py-1 rounded text-xs">Editar</button>
+      <button class="eliminar bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs">Eliminar</button>
+    </td>
+  `;
+  tablaBody.appendChild(fila);
+}
 
-    if (nombre === '' || edad === '') {
-      alert("Por favor, completa ambos campos.");
-      return;
+// Guardar o actualizar datos
+btnGuardar.addEventListener('click', () => {
+  const nombre = nombreInput.value.trim();
+  const edad = edadInput.value.trim();
+
+  if (nombre === '' || edad === '') {
+    alert("Por favor, completa ambos campos.");
+    return;
+  }
+
+  if (filaEditando) {
+    const celdas = filaEditando.querySelectorAll('td');
+    const id = celdas[0].textContent;
+    celdas[1].textContent = nombre;
+    celdas[2].textContent = edad;
+
+    const index = datosExcel.findIndex(d => d.ID == id);
+    if (index !== -1) {
+      datosExcel[index].Nombre = nombre;
+      datosExcel[index].Edad = edad;
     }
 
-    const fila = document.createElement('tr');
+    filaEditando = null;
+    btnGuardar.textContent = "Guardar";
+  } else {
+    const id = contadorID++;
+    crearFila(id, nombre, edad);
+    datosExcel.push({ ID: id, Nombre: nombre, Edad: edad });
+  }
 
-    fila.innerHTML = `
-      <td class="py-2 px-4">${contadorID++}</td>
-      <td class="py-2 px-4">${nombre}</td>
-      <td class="py-2 px-4">${edad}</td>
-      <td class="py-2 px-4">
-        <button class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs eliminar">Eliminar</button>
-      </td>
-    `;
+  nombreInput.value = '';
+  edadInput.value = '';
+});
 
-    tablaBody.appendChild(fila);
+// Editar y eliminar
+tablaBody.addEventListener('click', (e) => {
+  const btn = e.target;
+  const fila = btn.closest('tr');
+  const celdas = fila.querySelectorAll('td');
+  const id = celdas[0].textContent;
 
-    // Limpiar inputs
-    nombreInput.value = '';
-    edadInput.value = '';
-  });
+  if (btn.classList.contains('eliminar')) {
+    fila.remove();
+    datosExcel = datosExcel.filter(d => d.ID != id);
 
-  // Delegación de eventos para eliminar filas
-  tablaBody.addEventListener('click', (e) => {
-    if (e.target.classList.contains('eliminar')) {
-      e.target.closest('tr').remove();
+    if (fila === filaEditando) {
+      btnGuardar.textContent = "Guardar";
+      filaEditando = null;
+      nombreInput.value = '';
+      edadInput.value = '';
     }
-  });
-  const inputExcel = document.getElementById('cargarExel');
+  }
 
+  if (btn.classList.contains('editar')) {
+    nombreInput.value = celdas[1].textContent;
+    edadInput.value = celdas[2].textContent;
+    filaEditando = fila;
+    btnGuardar.textContent = "Actualizar";
+  }
+});
+
+// Importar Excel
 inputExcel.addEventListener('change', (e) => {
   const archivo = e.target.files[0];
   if (!archivo) return;
@@ -115,72 +161,43 @@ inputExcel.addEventListener('change', (e) => {
   lector.onload = (evento) => {
     const datos = new Uint8Array(evento.target.result);
     const libro = XLSX.read(datos, { type: 'array' });
+    const hoja = XLSX.utils.sheet_to_json(libro.Sheets[libro.SheetNames[0]], { header: 1 });
 
-    const primeraHoja = libro.SheetNames[0];
-    const hoja = libro.Sheets[primeraHoja];
-
-    // Convertir hoja a JSON
-    const filas = XLSX.utils.sheet_to_json(hoja, { header: 1 });
-
-    // Limpiar tabla actual
     tablaBody.innerHTML = '';
-    contadorID = 1;
+    datosExcel = [];
 
-    filas.forEach((fila, index) => {
-      // Saltar encabezado
-      if (index === 0 || fila.length < 2) return;
+    let maxID = 0;
 
-      const [id, nombre, edad] = fila;
+    hoja.forEach((fila, i) => {
+      if (i === 0 || fila.length < 2) return;
 
-      const nuevaFila = document.createElement('tr');
-      nuevaFila.innerHTML = `
-        <td class="py-2 px-4">${id || contadorID++}</td>
-        <td class="py-2 px-4">${nombre}</td>
-        <td class="py-2 px-4">${edad}</td>
-        <td class="py-2 px-4">
-          <button class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs eliminar">Eliminar</button>
-        </td>
-      `;
-      tablaBody.appendChild(nuevaFila);
+      let [id, nombre, edad] = fila;
+
+      id = Number(id) || contadorID++;
+      maxID = Math.max(maxID, id);
+
+      crearFila(id, nombre, edad);
+      datosExcel.push({ ID: id, Nombre: nombre, Edad: edad });
     });
+
+    contadorID = maxID + 1;
   };
 
   lector.readAsArrayBuffer(archivo);
 });
 
-  // Botón exportar
-const btnExportar = document.getElementById('exportarExcel');
-
+// Exportar a Excel
 btnExportar.addEventListener('click', () => {
-  const datos = [];
-  
-  // Recorremos las filas de la tabla
-  tablaBody.querySelectorAll('tr').forEach(fila => {
-    const celdas = fila.querySelectorAll('td');
-    const filaDatos = {
-      ID: celdas[0].textContent,
-      Nombre: celdas[1].textContent,
-      Edad: celdas[2].textContent
-    };
-    datos.push(filaDatos);
-  });
-
-  if (datos.length === 0) {
+  if (datosExcel.length === 0) {
     alert("No hay datos para exportar.");
     return;
   }
 
-  // Crear una hoja de cálculo
-  const ws = XLSX.utils.json_to_sheet(datos);
-
-  // Crear un libro
+  const ws = XLSX.utils.json_to_sheet(datosExcel);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Datos");
-
-  // Exportar
-  XLSX.writeFile(wb, "datos_exportados.xlsx");
+  XLSX.writeFile(wb, "datos_actualizados.xlsx");
 });
-
 </script>
 
 </body>
